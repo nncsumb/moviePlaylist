@@ -192,6 +192,19 @@ function loadSearchResults(results, playlistId) {
     noResultsMessage.textContent = "No series results found.";
     searchSeriesContainer.appendChild(noResultsMessage);
   }
+  document.getElementById("clearButton").style.display = "block";
+}
+
+function clearSearchResults() {
+  // Clear the search results
+  document.getElementById("searchMovies").innerHTML = "";
+  document.getElementById("searchSeries").innerHTML = "";
+
+  // Clear the search input field
+  document.getElementById("search").value = "";
+
+  // Hide the clear button
+  document.getElementById("clearButton").style.display = "none";
 }
 
 // Event listeners
@@ -219,5 +232,10 @@ document.addEventListener("DOMContentLoaded", function () {
     backButton.addEventListener("click", function () {
       window.location.href = "/playlists"; // Redirect to the /playlist route
     });
+  }
+
+  var clearButton = document.getElementById("clearButton");
+  if (clearButton) {
+    clearButton.addEventListener("click", clearSearchResults);
   }
 });
