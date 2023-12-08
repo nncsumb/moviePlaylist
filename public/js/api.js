@@ -1,6 +1,6 @@
 // api.js
 
-// Function to create a new user
+// Function to create a new users
 async function createUser(userName) {
   try {
     const response = await axios.post("/api/user", { name: userName });
