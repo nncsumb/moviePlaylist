@@ -1,0 +1,19 @@
+<%- include('partials/header.ejs') %>
+
+  <h1> Playlists: </h1>
+
+  <!-- Form to Create New Playlist -->
+  <form id="playlistForm">
+      <label for="playlistName">Enter Playlist Name:</label>
+      <input type="text" id="playlistName" name="playlistName" required>
+      <button type="submit">Create Playlist</button>
+  </form>
+
+  <!-- Section to Display Playlists -->
+  <ul id="playlists"></ul>
+   
+
+<%- include('partials/footer.ejs') %>
+<script>
+  window.onload = loadPlaylists;
+</script>

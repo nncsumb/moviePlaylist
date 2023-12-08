@@ -1,0 +1,30 @@
+<%- include('partials/header.ejs') %>
+<!-- Back Button -->
+<button id="backButton">Back to Playlists</button>
+  <h1> <%= playlistName %> </h1> <!-- Displaying playlist name --
+
+<form id="searchForm" action="/search" method="GET"> <!-- Updated form tag -->
+  <label for="search">Search:</label>
+  <input type="text" id="search" name="search" required>
+  <input type="hidden" id="playlistId" name="playlistId" value="<%= playlistId %>"> <!-- Hidden input for playlistId -->
+  <button type="submit">Submit</button>
+</form>
+
+<!-- Section to Display Playlist Items -->
+<h2>Movies:</h2>
+<ul id="searchMovies"></ul>
+
+<h2>Series:</h2>
+<ul id="searchSeries"></ul>
+<h2>Items:</h2>
+<ul id="playlistItems"></ul>
+
+<%- include('partials/footer.ejs') %>
+<script>
+  window.onload = function () {
+    loadPlaylistItems(<%= playlistId %>); 
+  };
+</script>
+
+
+

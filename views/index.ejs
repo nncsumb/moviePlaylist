@@ -1,0 +1,19 @@
+<%- include('partials/header.ejs') %>
+<script>
+    // Check if userId exists in local storage
+    if (localStorage.getItem("userId")) {
+        // Redirect to playlists page
+        window.location.href = "/playlists";
+    }
+</script>
+<h1> Movie Playlist </h1>
+
+<!-- User Creation Form -->
+<form id="userForm">
+    <label for="userName">Enter your name:</label>
+    <input type="text" id="userName" name="userName" required>
+    <button type="submit">Create User</button>
+</form>
+
+<%- include('partials/footer.ejs') %>
+  
