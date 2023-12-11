@@ -1,0 +1,26 @@
+<%- include('partials/header.ejs') %>
+  <a href="/playlists">Back</a>
+  <form action="/edit-playlist/<%= playlist.id %>" method="POST">
+    <label for="playlistName">Playlist Name:</label>
+    <input type="text" id="playlistName" name="playlist_name" value="<%= playlist.playlist_name %>" required>
+  
+    <label for="playlistOrder">Playlist Order:</label>
+    <input type="number" id="playlistOrder" name="playlist_order" value="<%= playlist.playlist_order %>">
+  
+    <label for="playlistColor">Playlist Color</label>
+    <select type="form-select" id="playListcolor" name="color" value="<%= playlist.color >">
+      <option value="white">White</option>
+      <option value="#ffcdd2">Red</option>
+      <option value="#c8e6c9">Green</option>
+      <option value="#fff9c4">Yellow</option>
+      <option value="#e1bee7">Purple</option>
+      <option value="#ffe0b2">Orange</option>
+      <option value="#f8bbd0">Pink</option>
+      <option value="#f0f0f0">Gray</option>
+      <option value="#b2ebf2">Teal</option>
+      <option value="#b2dfdb">Cyan</option>
+    </select>
+  
+    <button type="submit">Update Playlist</button>
+  </form>
+<%- include('partials/footer.ejs') %>

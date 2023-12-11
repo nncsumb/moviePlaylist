@@ -1,3 +1,5 @@
+//index.js 
+
 const express = require("express");
 const mysql = require("mysql");
 const app = express();
@@ -31,7 +33,7 @@ app.get("/playlists", (req, res) => {
 
 app.get("/playlist/:playlistId", async (req, res) => {
   const playlistId = req.params.playlistId;
-  let sql = "SELECT playlist_name FROM Playlist WHERE id = ?";
+  let sql = "SELECT playlist_name FROM Playlist WHERE id = ? ORDER BY playlist_order";
   try {
     const result = await executeSQL(sql, [playlistId]);
     if (result.length > 0) {
@@ -67,13 +69,20 @@ app.post("/api/user", async function (req, res) {
 
 // Playlist Management Endpoints
 app.post("/api/playlist/new", async function (req, res) {
-  const { playlist_name, user_id } = req.body;
+  const { playlist_name, user_id, color } = req.body;
   if (!playlist_name || !user_id) {
     return res.status(400).send("Playlist name and user ID are required");
   }
-  let sql = "INSERT INTO Playlist (playlist_name, user_id) VALUES (?, ?)";
+  // Calculate the new playlist_order as max(existing orders) + 1
+  let maxOrderSql = "SELECT MAX(playlist_order) AS maxOrder FROM Playlist";
   try {
-    await executeSQL(sql, [playlist_name, user_id]);
+    const result = await executeSQL(maxOrderSql);
+    const maxOrder = result[0].maxOrder || 0;
+    const newPlaylistOrder = maxOrder + 1;
+    let sql =
+      "INSERT INTO Playlist (user_id, playlist_name, playlist_order) VALUES (?, ?, ?)";
+    await executeSQL(sql, [user_id, playlist_name, newPlaylistOrder]);
+
     res.status(201).send("Playlist created successfully");
   } catch (err) {
     console.error(err);
@@ -95,7 +104,7 @@ app.delete("/api/playlist/:playlistId", async function (req, res) {
 
 app.get("/api/playlist/:userId", async function (req, res) {
   const { userId } = req.params;
-  let sql = "SELECT * FROM Playlist WHERE user_id = ?";
+  let sql = "SELECT * FROM Playlist WHERE user_id = ? ORDER BY playlist_order";
   try {
     const playlists = await executeSQL(sql, [userId]);
     res.status(200).json(playlists);
@@ -143,7 +152,7 @@ app.post("/api/playlist/:playlistId/items", async function (req, res) {
     res.status(500).send("Error adding playlist item");
   }
 });
-
+//delete item
 app.delete(
   "/api/playlist/:playlistId/items/:itemId",
   async function (req, res) {
@@ -156,80 +165,69 @@ app.delete(
       console.error(err);
       res.status(500).send("Error deleting playlist item");
     }
-  }
+  },
 );
-
+//display playlist
 app.get("/api/playlist/:playlistId/items", async function (req, res) {
   const { playlistId } = req.params;
+  const { type, genre } = req.query;  
+
   let sql = "SELECT * FROM PlaylistItem WHERE playlist_id = ?";
   try {
-    const items = await executeSQL(sql, [playlistId]);
-
-    // Separate content_ids based on type (movie or series)
-    const movieContentIds = [];
-    const seriesContentIds = [];
-
-    items.forEach((item) => {
-      if (item.type === "movie") {
-        movieContentIds.push(item.content_id);
-      } else if (item.type === "series") {
-        seriesContentIds.push(item.content_id);
-      }
-    });
-
-    // Function to fetch metadata for content_ids and type
-    async function fetchMetadata(contentIds, type) {
-      if (contentIds.length === 0) {
-        return [];
-      }
-
-      const cinemetaResponse = await fetch(
-        `https://v3-cinemeta.strem.io/catalog/${type}/last-videos/lastVideosIds=${contentIds.join(
-          ","
-        )}.json`
-      );
-
-      if (!cinemetaResponse.ok) {
-        throw new Error(
-          `Cinemeta API request failed with status: ${cinemetaResponse.status}`
-        );
-      }
-
-      const cinemetaData = await cinemetaResponse.json();
-      const { metasDetailed } = cinemetaData;
-
-      return metasDetailed;
-    }
+    let items = await executeSQL(sql, [playlistId]);
 
     // Fetch metadata for movies and series separately
-    const movieMetadata = await fetchMetadata(movieContentIds, "movie");
-    const seriesMetadata = await fetchMetadata(seriesContentIds, "series");
+    const movieMetadata = await fetchMetadata(items, 'movie');
+    const seriesMetadata = await fetchMetadata(items, 'series');
 
-    // Merge metadata with playlist items
-    const itemsWithMetadata = items.map((item) => {
-      let matchingMeta = null;
-      if (item.type === "movie") {
-        matchingMeta = movieMetadata.find(
-          (meta) => meta.imdb_id === item.content_id
-        );
-      } else if (item.type === "series") {
-        matchingMeta = seriesMetadata.find(
-          (meta) => meta.imdb_id === item.content_id
-        );
-      }
+    // Combine items with their metadata
+    items = items.map(item => {
+      const metadata = item.type === 'movie' 
+        ? movieMetadata.find(meta => meta && meta.imdb_id === item.content_id)
+        : seriesMetadata.find(meta => meta && meta.imdb_id === item.content_id);
 
-      return {
-        ...item,
-        metadata: matchingMeta || null,
-      };
+      return { ...item, metadata: metadata || null };
     });
 
-    res.status(200).json(itemsWithMetadata);
+    // Filter by type if specified
+    if (type && type !== 'both') {
+      items = items.filter(item => item.type === type);
+    }
+
+    // Filter by genre if specified
+    if (genre) {
+      items = items.filter(item => 
+        item.metadata && item.metadata.genres && item.metadata.genres.includes(genre)
+      );
+    }
+
+    res.status(200).json(items);
   } catch (err) {
-    console.error(err);
+    console.error("Error retrieving playlist items:", err);
     res.status(500).send("Error retrieving playlist items with metadata");
   }
 });
+
+// Function to fetch metadata
+async function fetchMetadata(items, type) {
+  const contentIds = items.filter(item => item.type === type).map(item => item.content_id);
+  if (contentIds.length === 0) {
+    return [];
+  }
+
+  const cinemetaResponse = await fetch(
+    `https://v3-cinemeta.strem.io/catalog/${type}/last-videos/lastVideosIds=${contentIds.join(",")}.json`
+  );
+
+  if (!cinemetaResponse.ok) {
+    throw new Error(`Cinemeta API request failed with status: ${cinemetaResponse.status}`);
+  }
+
+  const cinemetaData = await cinemetaResponse.json();
+  return cinemetaData.metasDetailed || [];
+}
+
+
 
 app.get("/api/search/:searchTerm", async (req, res) => {
   const searchTerm = req.params.searchTerm || "";
@@ -259,7 +257,47 @@ app.get("/api/search/:searchTerm", async (req, res) => {
   }
 });
 
+app.get("/edit-playlist/:id", async (req, res) => {
+  const playlistId = req.params.id;
+  try {
+    const sql = "SELECT * FROM Playlist WHERE id = ?";
+    const playlist = await executeSQL(sql, [playlistId]);
+    if (playlist.length > 0) {
+      res.render("edit-playlist", { playlist: playlist[0] });
+    } else {
+      res.status(404).send("Playlist not found");
+    }
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Error retrieving playlist details");
+  }
+});
+
+app.post("/edit-playlist/:id", async (req, res) => {
+  const playlistId = req.params.id;
+  const { playlist_name, playlist_order, color } = req.body;
+
+  if (!playlist_name) {
+    return res.status(400).send("Playlist name is required");
+  }
+
+  try {
+    const sql =
+      "UPDATE Playlist SET playlist_name = ?, playlist_order = ?, color = ? WHERE id = ?";
+    await executeSQL(sql, [
+      playlist_name,
+      playlist_order,
+      color,
+      playlistId,
+    ]);
+    res.redirect("/playlists");
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Error updating playlist");
+  }
+});
+
 //start server
 app.listen(3000, () => {
-  console.log("Expresss server running...");
+  console.log("Express server running...");
 });

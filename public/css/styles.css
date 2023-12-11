@@ -4,8 +4,16 @@ html, body {
     padding: 0;
 }
 
+body {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;  
+    margin: 0;
+
+}
+
 .footer {
-  position: fixed;
+
   display: flex;
   justify-content: center;
   align-items: center;

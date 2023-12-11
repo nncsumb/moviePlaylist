@@ -1,3 +1,5 @@
+//script.js
+
 // Functions
 async function handleUserFormSubmission(event) {
   event.preventDefault(); // Prevent the default form submission
@@ -10,12 +12,35 @@ async function handleUserFormSubmission(event) {
       alert("User created successfully. User ID: " + response.userId);
 
       // Redirect to playlists page
-      window.location.href = "/playlists"; // Change '/playlists' to the actual route you have for displaying playlists
+      window.location.href = "/playlists";
     }
   } catch (error) {
     console.error("Error creating user:", error);
     alert("Error creating user");
   }
+}
+
+function applySorting(playlistId) {
+  const filterMovies = document.getElementById("filterMovies").checked;
+  const filterSeries = document.getElementById("filterSeries").checked;
+  const selectedGenre = document.getElementById("genreSelect").value;
+
+  console.log(
+    `Applying filters: Type - ${filterMovies ? "Movies" : ""}${
+      filterSeries ? " Series" : ""
+    }, Genre - ${selectedGenre}`,
+  );
+
+  let type = "";
+  if (filterMovies && !filterSeries) {
+    type = "movie";
+  } else if (!filterMovies && filterSeries) {
+    type = "series";
+  } else {
+    type = "both";
+  }
+
+  loadPlaylistItems(playlistId, type, selectedGenre);
 }
 
 // Function to handle the playlist creation form submission
@@ -51,6 +76,7 @@ async function handleSearchFormSubmission(event) {
   }
 }
 
+
 // Function to load and display playlists
 async function loadPlaylists() {
   const userId = localStorage.getItem("userId");
@@ -59,18 +85,25 @@ async function loadPlaylists() {
   try {
     const playlists = await getPlaylists(userId);
     const playlistsContainer = document.getElementById("playlists");
-    playlistsContainer.innerHTML = ""; // Clear existing playlists
+    playlistsContainer.innerHTML = "";
+    playlistsContainer.className = "list-group";
 
     playlists.forEach((playlist) => {
       const li = document.createElement("li");
+      li.className =
+        "list-group-item d-flex justify-content-between align-items-center";
+      li.style.backgroundColor = playlist.color;
       const a = document.createElement("a");
       a.href = `/playlist/${playlist.id}`;
       a.textContent = playlist.playlist_name;
+      a.className = "playlist-link";
       li.appendChild(a);
 
-      // Create a delete button
+      const buttonContainer = document.createElement("div");
+
       const deleteButton = document.createElement("button");
       deleteButton.textContent = "Delete";
+      deleteButton.className = "btn btn-danger btn-sm mx-1";
       deleteButton.onclick = async function () {
         try {
           await deletePlaylist(playlist.id);
@@ -81,8 +114,47 @@ async function loadPlaylists() {
           alert("Error deleting playlist");
         }
       };
+      buttonContainer.appendChild(deleteButton);
 
-      li.appendChild(deleteButton);
+      // Edit button
+      const editButton = document.createElement("button");
+      editButton.textContent = "Edit";
+      editButton.className = "btn btn-primary btn-sm mx-1";
+      editButton.onclick = function () {
+        // Open edit modal
+        const editModal = new bootstrap.Modal(
+          document.getElementById("editPlaylistModal"),
+        );
+        document.getElementById("editPlaylistName").value =
+          playlist.playlist_name;
+        document.getElementById("editPlaylistOrder").value =
+          playlist.playlist_order;
+        document.getElementById("editPlaylistForm").onsubmit = async function (
+          event,
+        ) {
+          event.preventDefault();
+          try {
+            // Call API to update the playlist
+            await editPlaylist(
+              playlist.id,
+              document.getElementById("editPlaylistName").value,
+              document.getElementById("editPlaylistOrder").value,
+              document.getElementById("editPlaylistColor").value,
+            );
+            alert("Playlist updated successfully");
+            loadPlaylists(); // Reload playlists to reflect changes
+            editModal.hide();
+          } catch (error) {
+            console.error("Error updating playlist:", error);
+            alert("Error updating playlist");
+          }
+        };
+        editModal.show();
+      };
+
+      buttonContainer.appendChild(editButton);
+
+      li.appendChild(buttonContainer);
       playlistsContainer.appendChild(li);
     });
   } catch (error) {
@@ -90,46 +162,114 @@ async function loadPlaylists() {
   }
 }
 
-async function loadPlaylistItems(playlistId) {
+async function loadPlaylistItems(
+  playlistId,
+  typeFilter = "",
+  genreFilter = "",
+) {
   try {
-    const items = await getPlaylistItems(playlistId);
+    let items = await getPlaylistItems(playlistId, typeFilter, genreFilter);
     const itemsContainer = document.getElementById("playlistItems");
-    itemsContainer.innerHTML = ""; // Clear existing items
+    itemsContainer.innerHTML = "";  
 
-    items.forEach((item) => {
-      const li = document.createElement("li");
-      li.textContent = item.metadata.name;
+    // Filter items by type if necessary
+    if (typeFilter !== "both") {
+      items = items.filter(
+        (item) => typeFilter === "" || item.type === typeFilter,
+      );
+    }
 
-      // Create a delete button for each item
-      const deleteButton = document.createElement("button");
-      deleteButton.textContent = "Delete";
-      deleteButton.onclick = async function () {
-        try {
-          await deletePlaylistItem(playlistId, item.id);
-          alert("Playlist item deleted successfully");
-          loadPlaylistItems(playlistId); // Reload playlist items to reflect changes
-        } catch (error) {
-          console.error("Error deleting playlist item:", error);
-          alert("Error deleting playlist item");
-        }
-      };
+    // Group items by genre
+    const genres = items.reduce((acc, item) => {
+      const genre =
+        item.metadata && item.metadata.genres
+          ? item.metadata.genres[0]
+          : "Other";
+      if (!acc[genre]) {
+        acc[genre] = [];
+      }
+      acc[genre].push(item);
+      return acc;
+    }, {});
 
-      li.appendChild(deleteButton);
-      itemsContainer.appendChild(li);
+     const sortedGenres = Object.keys(genres).sort();
+
+     sortedGenres.forEach((genre) => {
+       const header = document.createElement("h4");
+      header.textContent = genre;
+      itemsContainer.appendChild(header);
+
+       const row = document.createElement("div");
+      row.className = "row";
+
+       genres[genre].forEach((item) => {
+        const cardCol = createPlaylistItemCard(item);
+        row.appendChild(cardCol);
+      });
+
+      itemsContainer.appendChild(row);
     });
   } catch (error) {
     console.error("Error retrieving playlist items:", error);
   }
 }
 
-// Function to display search results
-function loadSearchResults(results, playlistId) {
+function createPlaylistItemCard(item) {
+  const col = document.createElement("div");
+  col.className = "col-md-2 mb-3";
+
+  const card = document.createElement("div");
+  card.className = "card";
+
+  if (item.metadata && item.metadata.poster) {
+    const img = document.createElement("img");
+    img.src = item.metadata.poster;
+    img.alt = item.metadata.name;
+    img.className = "card-img-top";
+    card.appendChild(img);
+  }
+
+  const cardBody = document.createElement("div");
+  cardBody.className = "card-body";
+
+  const title = document.createElement("h5");
+  title.className = "card-title";
+  title.textContent = item.metadata ? item.metadata.name : "Unnamed Item";
+  cardBody.appendChild(title);
+
+  const deleteButton = document.createElement("button");
+  deleteButton.className = "btn btn-danger";
+  deleteButton.textContent = "Delete";
+  deleteButton.onclick = async function () {
+    try {
+      await deletePlaylistItem(item.playlist_id, item.id);
+      loadPlaylistItems(item.playlist_id); // Reload the playlist items
+    } catch (error) {
+      console.error("Error deleting playlist item:", error);
+    }
+  };
+  cardBody.appendChild(deleteButton);
+
+  card.appendChild(cardBody);
+  col.appendChild(card);
+
+  return col;
+}
+
+ function loadSearchResults(results, playlistId) {
+  const searchResultsContainer = document.getElementById("searchResults");  
   const searchMoviesContainer = document.getElementById("searchMovies");
   const searchSeriesContainer = document.getElementById("searchSeries");
 
-  // Clear existing search results
-  searchMoviesContainer.innerHTML = "";
-  searchSeriesContainer.innerHTML = "";
+   const hasResults = results.movies.length > 0 || results.series.length > 0;
+  searchResultsContainer.style.display = hasResults ? "block" : "none";
+
+   searchMoviesContainer.innerHTML = "<div class='row'></div>";
+  searchSeriesContainer.innerHTML = "<div class='row'></div>";
+
+  const movieRow = searchMoviesContainer.querySelector(".row");
+  const seriesRow = searchSeriesContainer.querySelector(".row");
+
 
   // Function to handle adding items to the playlist
   async function handleAddToPlaylist(meta, contentType) {
@@ -146,83 +286,113 @@ function loadSearchResults(results, playlistId) {
       }
     }
   }
+  // Function to create a card inside a grid column
+  function createCard(meta, contentType) {
+    const col = document.createElement("div");
+    col.className = "col-md-2 mb-3";
+
+    const card = document.createElement("div");
+    card.className = "card h-100";
+
+    if (meta.poster) {
+      const img = document.createElement("img");
+      img.src = meta.poster;
+      img.alt = meta.name + " poster";
+      img.className = "card-img-top";
+      card.appendChild(img);
+    }
+
+    const cardBody = document.createElement("div");
+    cardBody.className = "card-body";
+
+    const title = document.createElement("h5");
+    title.className = "card-title";
+    title.textContent = meta.name;
+    cardBody.appendChild(title);
+
+    // Create an "info" button
+    const infoButton = document.createElement("button");
+    infoButton.className = "btn btn-info";
+    infoButton.textContent = "Info";
+    infoButton.addEventListener("click", function () {
+      // Set the movie info in the modal body
+      const modalBody = document.querySelector("#movieInfoModal .modal-body");
+      modalBody.innerHTML = `
+        <h5>${meta.name}</h5>
+        <p>Release Year: ${meta.releaseYear || "N/A"}</p>
+        <p>Director: ${meta.director || "N/A"}</p>
+        <p>Genre: ${meta.genre || "N/A"}</p>
+       `;
+
+      // Show the modal
+      const movieInfoModal = new bootstrap.Modal(document.getElementById("movieInfoModal"));
+      movieInfoModal.show();
+    });
+    cardBody.appendChild(infoButton);
+
+    const addToPlaylistButton = document.createElement("button");
+    addToPlaylistButton.className = "btn btn-primary";
+    addToPlaylistButton.textContent = "Add to Playlist";
+    addToPlaylistButton.addEventListener("click", function () {
+      handleAddToPlaylist(meta, contentType);
+    });
+    cardBody.appendChild(addToPlaylistButton);
+
+    card.appendChild(cardBody);
+    col.appendChild(card);
+
+    return col;
+  }
+
 
   // Handling movie results
   if (results.movies && results.movies.length > 0) {
     results.movies.forEach(function (meta) {
-      const li = document.createElement("li");
-      const title = document.createElement("span");
-      title.textContent = meta.name;
-      li.appendChild(title);
-
-      // Create the "Add to Playlist" button for movies
-      const addToPlaylistButton = document.createElement("button");
-      addToPlaylistButton.textContent = "Add to Playlist";
-      addToPlaylistButton.addEventListener("click", function () {
-        handleAddToPlaylist(meta, "movie");
-      });
-      li.appendChild(addToPlaylistButton);
-      searchMoviesContainer.appendChild(li);
+      const cardCol = createCard(meta, "movie");
+      movieRow.appendChild(cardCol);
     });
   } else {
-    const noResultsMessage = document.createElement("p");
-    noResultsMessage.textContent = "No movie results found.";
-    searchMoviesContainer.appendChild(noResultsMessage);
+    movieRow.innerHTML = "<p>No movie results found.</p>";
   }
 
   // Handling series results
   if (results.series && results.series.length > 0) {
     results.series.forEach(function (meta) {
-      const li = document.createElement("li");
-      const title = document.createElement("span");
-      title.textContent = meta.name;
-      li.appendChild(title);
-
-      // Create the "Add to Playlist" button for series
-      const addToPlaylistButton = document.createElement("button");
-      addToPlaylistButton.textContent = "Add to Playlist";
-      addToPlaylistButton.addEventListener("click", function () {
-        handleAddToPlaylist(meta, "series");
-      });
-      li.appendChild(addToPlaylistButton);
-      searchSeriesContainer.appendChild(li);
+      const cardCol = createCard(meta, "series");
+      seriesRow.appendChild(cardCol);
     });
   } else {
-    const noResultsMessage = document.createElement("p");
-    noResultsMessage.textContent = "No series results found.";
-    searchSeriesContainer.appendChild(noResultsMessage);
+    seriesRow.innerHTML = "<p>No series results found.</p>";
   }
+
   document.getElementById("clearButton").style.display = "block";
 }
 
 function clearSearchResults() {
-  // Clear the search results
-  document.getElementById("searchMovies").innerHTML = "";
+  const searchResultsContainer = document.getElementById("searchResults");  
+
+   document.getElementById("searchMovies").innerHTML = "";
   document.getElementById("searchSeries").innerHTML = "";
 
-  // Clear the search input field
-  document.getElementById("search").value = "";
+   searchResultsContainer.style.display = "none";
 
-  // Hide the clear button
+   document.getElementById("search").value = "";
   document.getElementById("clearButton").style.display = "none";
 }
 
 // Event listeners
 document.addEventListener("DOMContentLoaded", function () {
-  // Check if userForm exists before adding event listener
-  var userForm = document.getElementById("userForm");
+   var userForm = document.getElementById("userForm");
   if (userForm) {
     userForm.addEventListener("submit", handleUserFormSubmission);
   }
 
-  // Check if playlistForm exists before adding event listener
-  var playlistForm = document.getElementById("playlistForm");
+   var playlistForm = document.getElementById("playlistForm");
   if (playlistForm) {
     playlistForm.addEventListener("submit", handlePlaylistFormSubmission);
   }
 
-  // Check if searchForm exists before adding event listener
-  var searchForm = document.getElementById("searchForm");
+   var searchForm = document.getElementById("searchForm");
   if (searchForm) {
     searchForm.addEventListener("submit", handleSearchFormSubmission);
   }
@@ -230,7 +400,7 @@ document.addEventListener("DOMContentLoaded", function () {
   var backButton = document.getElementById("backButton");
   if (backButton) {
     backButton.addEventListener("click", function () {
-      window.location.href = "/playlists"; // Redirect to the /playlist route
+      window.location.href = "/playlists";  
     });
   }
 
@@ -238,4 +408,50 @@ document.addEventListener("DOMContentLoaded", function () {
   if (clearButton) {
     clearButton.addEventListener("click", clearSearchResults);
   }
+
+  loadPlaylists();
 });
+
+
+//fix me, everything below here..
+//need to adjust backend, values for order and color aren't posting
+
+// Add event listener for the form submission in the modal
+const editPlaylistForm = document.getElementById("editPlaylistForm");
+editPlaylistForm.addEventListener("submit", async function (event) {
+  event.preventDefault();
+
+  // Get the updated values from the form
+  const editedName = document.getElementById("editPlaylistName").value;
+  const editedOrder = document.getElementById("editPlaylistOrder").value;
+  const editedColor = document.getElementById("editPlaylistColor").value;
+
+  // Send a request to the server to update the playlist details
+  try {
+    const playlistId = document.getElementById("playlistId").value;
+    const response = await editPlaylist(playlistId, editedName, editedOrder, editedColor);
+    alert("Playlist updated successfully");
+    loadPlaylists(); // Reload playlists to reflect changes
+     const editModal = new bootstrap.Modal(
+      document.getElementById("editPlaylistModal")
+    );
+    editModal.hide();
+  } catch (error) {
+    console.error("Error updating playlist:", error);
+    alert("Error updating playlist");
+  }
+});
+
+// Validate playlist ordering values
+function handleInput(event) {
+  const inputElement = event.target;
+
+  // Ensure the input is valid and not empty
+  if (inputElement.validity.valid && inputElement.value !== '') {
+    // Parse the input value as an integer to drop the decimal part
+    const intValue = parseInt(inputElement.value, 10);
+
+    // Set the input value without the decimal part
+    inputElement.value = intValue;
+  }
+}

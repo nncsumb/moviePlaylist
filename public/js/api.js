@@ -12,6 +12,23 @@ async function createUser(userName) {
   }
 }
 
+ // Function to edit a playlist
+async function editPlaylist(playlistId, updatedPlaylistName, updatedPlaylistOrder, updatedColor) {
+  try {
+    const response = await axios.post(`/edit-playlist/${playlistId}`, {
+      playlist_name: updatedPlaylistName,
+      playlist_order: updatedPlaylistOrder,  
+      color: updatedColor,    
+    });
+    console.log("Playlist updated:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("Error updating playlist:", error);
+    throw error;
+  }
+}
+
+
 // Function to create a new playlist
 async function createPlaylist(playlistName, userId) {
   try {
@@ -35,13 +52,13 @@ async function deletePlaylist(playlistId) {
   } catch (error) {
     console.error("Error deleting playlist:", error);
     throw error;
-  }
+  }// update order?
 }
 
 // Function to get playlists for a user
 async function getPlaylists(userId) {
   try {
-    const response = await axios.get(`/api/playlist/${userId}`);
+    const response = await axios.get(`/api/playlist/${userId}?order=playlist_order`);
     console.log("Playlists:", response.data);
     return response.data;
   } catch (error) {
@@ -73,7 +90,7 @@ async function addPlaylistItem(playlistId, contentId, type) {
 async function deletePlaylistItem(playlistId, itemId) {
   try {
     const response = await axios.delete(
-      `/api/playlist/${playlistId}/items/${itemId}`
+      `/api/playlist/${playlistId}/items/${itemId}`,
     );
     console.log("Playlist item deleted:", response.data);
     return response.data;
@@ -84,12 +101,14 @@ async function deletePlaylistItem(playlistId, itemId) {
 }
 
 // Function to get playlist items
-async function getPlaylistItems(playlistId) {
+async function getPlaylistItems(playlistId, type = "", genre = "") {
   try {
-    const response = await axios.get(`/api/playlist/${playlistId}/items`);
+    const response = await axios.get(`/api/playlist/${playlistId}/items`, {
+      params: { type, genre },
+    });
     console.log("Playlist items:", response.data);
     return response.data;
-  } catch (error) {
+   } catch (error) {
     console.error("Error retrieving playlist items:", error);
     throw error;
   }
@@ -99,7 +118,7 @@ async function getPlaylistItems(playlistId) {
 async function searchCinemeta(searchTerm) {
   try {
     const response = await axios.get(
-      `/api/search/${encodeURIComponent(searchTerm)}`
+      `/api/search/${encodeURIComponent(searchTerm)}`,
     );
     console.log("Search results:", response.data);
     return response.data;

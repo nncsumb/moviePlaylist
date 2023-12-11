@@ -1,31 +1,117 @@
 <%- include('partials/header.ejs') %>
-<!-- Back Button -->
-<button id="backButton">Back to Playlists</button>
-  <h1> <%= playlistName %> </h1>
 
-<form id="searchForm" action="/search" method="GET"> <!-- Updated form tag -->
-  <label for="search">Search:</label>
-  <input type="text" id="search" name="search" required>
-  <input type="hidden" id="playlistId" name="playlistId" value="<%= playlistId %>"> <!-- Hidden input for playlistId -->
-  <button type="submit">Submit</button>
-  <button type="button" id="clearButton" style="display: none;">Clear</button> <!-- Clear button -->
-</form>
+<div class="container mt-3">
+    <button id="backButton" class="btn btn-secondary mb-4">Back to Playlists</button>
 
-<!-- Section to Display Playlist Items -->
-<h2>Movies:</h2>
-<ul id="searchMovies"></ul>
+    <h1 class="mb-4"><%= playlistName %></h1>
 
-<h2>Series:</h2>
-<ul id="searchSeries"></ul>
-<h2>Items:</h2>
-<ul id="playlistItems"></ul>
+    
+
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <form id="searchForm" action="/search" method="GET" class="input-group">
+                <input type="hidden" id="playlistId" name="playlistId" value="<%= playlistId %>">
+                <input type="text" id="search" name="search" required class="form-control">
+                <button type="submit" class="btn btn-primary">Search</button>
+                <button type="button" id="clearButton" class="btn btn-outline-secondary" style="display: none;">Clear</button>
+            </form>
+        </div>
+    </div>
+
+  <div id="searchResults" class="mb-3" style="display: none;">  
+      <h3>Movies:</h3>
+      <div id="searchMovies" class="row"></div>
+
+      <h3>Series:</h3>
+      <div id="searchSeries" class="row"></div>
+  </div>
+
+
+  <h2>Playlist Items:</h2>
+
+
+  <div class="mb-3">
+    <div class="form-check form-check-inline">
+        <input class="form-check-input" type="checkbox" id="filterMovies" checked onchange="applySorting(<%= playlistId %>)">
+        <label class="form-check-label" for="filterMovies">Movies</label>
+    </div>
+    <div class="form-check form-check-inline">
+        <input class="form-check-input" type="checkbox" id="filterSeries" checked onchange="applySorting(<%= playlistId %>)">
+        <label class="form-check-label" for="filterSeries">Series</label>
+    </div>
+  </div>
+
+  <div class="mb-3">
+    <label for="genreSelect" class="form-label">Genre:</label>
+    <select id="genreSelect" class="form-select">
+      <option value="">All Genres</option>
+      <option value="action">Action</option>
+      <option value="adventure">Adventure</option>
+      <option value="animation">Animation</option>
+      <option value="anime">Anime</option>
+      <option value="comedy">Comedy</option>
+      <option value="crime">Crime</option>
+      <option value="disaster">Disaster</option>
+      <option value="documentary">Documentary</option>
+      <option value="donghua">Donghua</option>
+      <option value="drama">Drama</option>
+      <option value="eastern">Eastern</option>
+      <option value="family">Family</option>
+      <option value="fan-film">Fan-film</option>
+      <option value="fantasy">Fantasy</option>
+      <option value="film-noir">Film-noir</option>
+      <option value="history">History</option>
+      <option value="holiday">Holiday</option>
+      <option value="horror">Horror</option>
+      <option value="indie">Indie</option>
+      <option value="music">Music</option>
+      <option value="musical">Musical</option>
+      <option value="mystery">Mystery</option>
+      <option value="none">None</option>
+      <option value="road">Road</option>
+      <option value="romance">Romance</option>
+      <option value="science-fiction">Science-fiction</option>
+      <option value="short">Short</option>
+      <option value="sports">Sports</option>
+      <option value="sporting-event">Sporting-event</option>
+      <option value="suspense">Suspense</option>
+      <option value="thriller">Thriller</option>
+      <option value="tv-movie">Tv-movie</option>
+      <option value="war">War</option>
+      <option value="western">Western</option>
+    </select>
+  </div>
+
+  <button onclick="applySorting(<%= playlistId %>)" class="btn btn-outline-primary mb-4">Apply Filters</button>
+
+  <div class="modal fade" id="movieInfoModal" tabindex="-1" aria-labelledby="movieInfoModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="movieInfoModalLabel">Movie Info</h5>
+          <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <!-- movie info...-->
+         </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+
+    <div id="playlistItems" class="row"></div>
+</div>
 
 <%- include('partials/footer.ejs') %>
+
 <script>
-  window.onload = function () {
-    loadPlaylistItems(<%= playlistId %>); 
-  };
+    window.onload = function() {
+        loadPlaylistItems(<%= playlistId %>);
+    };
 </script>
-
-
-
