@@ -217,6 +217,10 @@ function createPlaylistItemCard(item) {
     img.src = item.metadata.poster;
     img.alt = item.metadata.name;
     img.className = "card-img-top";
+    img.style.width = "100%";
+    img.style.height = "300px";
+    img.style.objectFit = "cover";
+    img.style.objectPosition = "center";
     card.appendChild(img);
   }
 
@@ -395,6 +399,10 @@ function loadSearchResults(results, playlistId) {
       img.src = meta.poster;
       img.alt = meta.name + " poster";
       img.className = "card-img-top";
+      img.style.width = "100%";
+      img.style.height = "300px";
+      img.style.objectFit = "cover";
+      img.style.objectPosition = "center";
       card.appendChild(img);
     }
 
