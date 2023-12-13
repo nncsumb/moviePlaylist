@@ -71,10 +71,16 @@ async function handleSearchFormSubmission(event) {
 
   try {
     const searchResults = await searchCinemeta(searchInput);
+    if (searchResults.movies && searchResults.movies.length == 0) {
+      showBootstrapAlert("No movie results found.", "danger");
+    }
+
+    if (searchResults.series && searchResults.series.length == 0) {
+      showBootstrapAlert("No series results found.", "danger");
+    }
     loadSearchResults(searchResults, playlistId);
   } catch (error) {
     console.error("Error searching:", error);
-    showBootstrapAlert("Error searching", "danger");
   }
 }
 
@@ -318,7 +324,7 @@ function loadSearchResults(results, playlistId) {
   const searchResultsContainer = document.getElementById("searchResults");
   const searchMoviesContainer = document.getElementById("searchMovies");
   const searchSeriesContainer = document.getElementById("searchSeries");
-
+  document.getElementById("clearButton").style.display = "block";
   const hasResults = results.movies.length > 0 || results.series.length > 0;
   searchResultsContainer.style.display = hasResults ? "block" : "none";
 
@@ -327,6 +333,22 @@ function loadSearchResults(results, playlistId) {
 
   const movieRow = searchMoviesContainer.querySelector(".row");
   const seriesRow = searchSeriesContainer.querySelector(".row");
+
+  // Handling movie results
+  if (results.movies && results.movies.length > 0) {
+    results.movies.forEach(function (meta) {
+      const cardCol = createCard(meta, "movie");
+      movieRow.appendChild(cardCol);
+    });
+  }
+
+  // Handling series results
+  if (results.series && results.series.length > 0) {
+    results.series.forEach(function (meta) {
+      const cardCol = createCard(meta, "series");
+      seriesRow.appendChild(cardCol);
+    });
+  }
 
   // Function to handle adding items to the playlist
   async function handleAddToPlaylist(meta, contentType) {
@@ -455,28 +477,6 @@ function loadSearchResults(results, playlistId) {
 
     return col;
   }
-
-  // Handling movie results
-  if (results.movies && results.movies.length > 0) {
-    results.movies.forEach(function (meta) {
-      const cardCol = createCard(meta, "movie");
-      movieRow.appendChild(cardCol);
-    });
-  } else {
-    movieRow.innerHTML = "<p>No movie results found.</p>";
-  }
-
-  // Handling series results
-  if (results.series && results.series.length > 0) {
-    results.series.forEach(function (meta) {
-      const cardCol = createCard(meta, "series");
-      seriesRow.appendChild(cardCol);
-    });
-  } else {
-    seriesRow.innerHTML = "<p>No series results found.</p>";
-  }
-
-  document.getElementById("clearButton").style.display = "block";
 }
 
 function clearSearchResults() {
@@ -552,5 +552,5 @@ function showBootstrapAlert(message, type = "info") {
   // Automatically dismiss the alert after 5 seconds
   setTimeout(() => {
     alert.remove();
-  }, 500);
+  }, 2000);
 }
