@@ -209,7 +209,7 @@ app.get("/api/playlist/:playlistId/items", async function (req, res) {
       items = items.filter(
         (item) =>
           item.metadata &&
-          item.metadata.genres &&
+          Array.isArray(item.metadata.genres) &&
           item.metadata.genres.includes(genre),
       );
     }
@@ -262,33 +262,65 @@ app.get("/api/search/:searchTerm", async (req, res) => {
       seriesResponse.json(),
     ]);
 
-    const combinedResults = {
-      movies: movieData.metas || [],
-      series: seriesData.metas || [],
+    // Extract IDs from movies and series
+    const movieIds = movieData.metas.map((movie) => movie.id);
+    const seriesIds = seriesData.metas.map((series) => series.id);
+
+    // Fetch enriched metadata for movies and series
+    const [enrichedMovies, enrichedSeries] = await Promise.all([
+      searchMetadata(movieIds, "movie"),
+      searchMetadata(seriesIds, "series"),
+    ]);
+
+    // Prepare the enriched data to send in the response
+    const enrichedResults = {
+      movies: enrichedMovies,
+      series: enrichedSeries,
     };
 
-    res.json(combinedResults);
+    res.json(enrichedResults);
   } catch (error) {
     console.error("Error during search:", error);
     res.status(500).send("Error performing search");
   }
 });
 
-app.get("/edit-playlist/:id", async (req, res) => {
-  const playlistId = req.params.id;
-  try {
-    const sql = "SELECT * FROM Playlist WHERE id = ?";
-    const playlist = await executeSQL(sql, [playlistId]);
-    if (playlist.length > 0) {
-      res.render("edit-playlist", { playlist: playlist[0] });
-    } else {
-      res.status(404).send("Playlist not found");
-    }
-  } catch (err) {
-    console.error(err);
-    res.status(500).send("Error retrieving playlist details");
+async function searchMetadata(ids, type) {
+  if (ids.length === 0) {
+    return [];
   }
-});
+
+  const cinemetaResponse = await fetch(
+    `https://v3-cinemeta.strem.io/catalog/${type}/last-videos/lastVideosIds=${ids.join(
+      ",",
+    )}.json`,
+  );
+
+  if (!cinemetaResponse.ok) {
+    throw new Error(
+      `Cinemeta API request failed with status: ${cinemetaResponse.status}`,
+    );
+  }
+
+  const cinemetaData = await cinemetaResponse.json();
+  return cinemetaData.metasDetailed || [];
+}
+
+// app.get("/edit-playlist/:id", async (req, res) => {
+//   const playlistId = req.params.id;
+//   try {
+//     const sql = "SELECT * FROM Playlist WHERE id = ?";
+//     const playlist = await executeSQL(sql, [playlistId]);
+//     if (playlist.length > 0) {
+//       res.render("edit-playlist", { playlist: playlist[0] });
+//     } else {
+//       res.status(404).send("Playlist not found");
+//     }
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).send("Error retrieving playlist details");
+//   }
+// });
 
 app.post("/edit-playlist/:id", async (req, res) => {
   const playlistId = req.params.id;

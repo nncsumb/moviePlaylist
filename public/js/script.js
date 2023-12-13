@@ -9,14 +9,17 @@ async function handleUserFormSubmission(event) {
     const response = await createUser(userName);
     if (response && response.userId) {
       localStorage.setItem("userId", response.userId);
-      alert("User created successfully. User ID: " + response.userId);
+      showBootstrapAlert(
+        "User created successfully. User ID: " + response.userId,
+        "success",
+      );
 
       // Redirect to playlists page
       window.location.href = "/playlists";
     }
   } catch (error) {
     console.error("Error creating user:", error);
-    alert("Error creating user");
+    showBootstrapAlert("Error creating user", "danger");
   }
 }
 
@@ -24,6 +27,8 @@ function applySorting(playlistId) {
   const filterMovies = document.getElementById("filterMovies").checked;
   const filterSeries = document.getElementById("filterSeries").checked;
   const selectedGenre = document.getElementById("genreSelect").value;
+
+  console.log("Genre selected:", selectedGenre); // Check the retrieved genre value
 
   let type = "";
   if (filterMovies && filterSeries) {
@@ -33,8 +38,11 @@ function applySorting(playlistId) {
   } else if (filterSeries) {
     type = "series";
   }
+  genre = selectedGenre;
 
-  loadPlaylistItems(playlistId, type, selectedGenre);
+  console.log("Type selected:", type); // Check the type value
+
+  loadPlaylistItems(playlistId, type, genre);
 }
 
 // Function to handle the playlist creation form submission
@@ -46,12 +54,12 @@ async function handlePlaylistFormSubmission(event) {
   try {
     const response = await createPlaylist(playlistName, userId);
     if (response) {
-      alert("Playlist created successfully");
+      showBootstrapAlert("Playlist created successfully", "success");
       loadPlaylists(); // Reload the playlist display
     }
   } catch (error) {
     console.error("Error creating playlist:", error);
-    alert("Error creating playlist");
+    showBootstrapAlert("Error creating playlist", "danger");
   }
 }
 
@@ -66,7 +74,7 @@ async function handleSearchFormSubmission(event) {
     loadSearchResults(searchResults, playlistId);
   } catch (error) {
     console.error("Error searching:", error);
-    alert("Error searching");
+    showBootstrapAlert("Error searching", "danger");
   }
 }
 
@@ -96,7 +104,7 @@ async function loadPlaylists() {
 
         const a = document.createElement("a");
         a.href = `/playlist/${playlist.id}`;
-        a.textContent = playlist.playlist_name;
+        a.textContent = `${playlist.playlist_order}. ${playlist.playlist_name}`;
         a.className = "playlist-link";
         li.appendChild(a);
 
@@ -109,11 +117,11 @@ async function loadPlaylists() {
         deleteButton.onclick = async function () {
           try {
             await deletePlaylist(playlist.id);
-            alert("Playlist deleted successfully");
+            showBootstrapAlert("Playlist deleted successfully", "success");
             loadPlaylists(); // Reload playlists to reflect changes
           } catch (error) {
             console.error("Error deleting playlist:", error);
-            alert("Error deleting playlist");
+            showBootstrapAlert("Error deleting playlist", "danger");
           }
         };
         buttonContainer.appendChild(deleteButton);
@@ -145,12 +153,12 @@ async function loadPlaylists() {
                   document.getElementById("editPlaylistOrder").value,
                   document.getElementById("editPlaylistColor").value,
                 );
-                alert("Playlist updated successfully");
+                showBootstrapAlert("Playlist updated successfully", "success");
                 loadPlaylists(); // Reload playlists to reflect changes
                 editModal.hide();
               } catch (error) {
                 console.error("Error updating playlist:", error);
-                alert("Error updating playlist");
+                showBootstrapAlert("Error updating playlist", "danger");
               }
             };
         };
@@ -171,17 +179,9 @@ async function loadPlaylistItems(
   genreFilter = "",
 ) {
   try {
-    let items = await getPlaylistItems(playlistId, typeFilter);
+    let items = await getPlaylistItems(playlistId, typeFilter, genreFilter);
     const itemsContainer = document.getElementById("playlistItems");
     itemsContainer.innerHTML = "";
-
-    if (typeFilter !== "") {
-      items = items.filter((item) => item.type === typeFilter);
-    }
-
-    if (genreFilter !== "") {
-      items = items.filter((item) => item.genre === genreFilter);
-    }
 
     items.forEach((item) => {
       const cardCol = createPlaylistItemCard(item);
@@ -198,6 +198,7 @@ function createPlaylistItemCard(item) {
 
   const card = document.createElement("div");
   card.className = "card";
+  card.style.boxShadow = "0px 4px 8px rgba(0, 0, 0, 0.3)";
 
   if (item.metadata && item.metadata.poster) {
     const img = document.createElement("img");
@@ -212,8 +213,79 @@ function createPlaylistItemCard(item) {
 
   const title = document.createElement("h5");
   title.className = "card-title";
-  title.textContent = item.metadata ? item.metadata.name : "Unnamed Item";
+  title.textContent = item.metadata.name;
+  title.style.maxWidth = "100%"; // Ensure the title does not exceed the card width
+  title.style.textOverflow = "ellipsis"; // Add ellipsis when text overflows
+  title.style.overflow = "hidden"; // Hide text that overflows the element's box
+  title.style.whiteSpace = "nowrap"; // Prevents the text from wrapping
+  title.style.fontWeight = "bold";
+  title.style.fontSize = "1.2rem";
   cardBody.appendChild(title);
+  cardBody.style.backgroundColor = "#f8f9fa";
+  cardBody.style.padding = "10px";
+  cardBody.style.borderRadius = "15px";
+
+  // Create an "info" button
+  const infoButton = document.createElement("button");
+  infoButton.className = "btn btn-secondary me-1";
+  infoButton.textContent = "Info";
+  infoButton.addEventListener("click", function () {
+    // Set the movie info in the modal body
+    const modalBody = document.querySelector("#movieInfoModal .modal-body");
+    // Create a container for the trailers
+    const trailerContainer = document.createElement("div");
+
+    if (item.metadata.trailers && item.metadata.trailers.length > 0) {
+      for (let i = 0; i < 1; i++) {
+        const trailer = item.metadata.trailers[i];
+        const trailerEmbed = document.createElement("iframe");
+        trailerEmbed.width = "470";
+        trailerEmbed.height = "315";
+        trailerEmbed.src = `https://www.youtube.com/embed/${trailer.source}?si=pmz4rzDGU4-ScGmN`;
+        trailerEmbed.title = "YouTube video player";
+        trailerEmbed.frameBorder = "0";
+        trailerEmbed.allow =
+          "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share";
+        trailerEmbed.allowFullscreen = true;
+        trailerEmbed.style.borderRadius = "15px";
+        trailerContainer.appendChild(trailerEmbed);
+      }
+    } else {
+      const noTrailerText = document.createElement("p");
+      noTrailerText.textContent = "No trailers available.";
+      trailerContainer.appendChild(noTrailerText);
+    }
+    modalBody.innerHTML = `
+      <div style="background-color: #f0f0f0; padding: 10px; border-radius: 10px;">
+      <img src="${item.metadata.logo || item.metadata.poster}" alt="${
+        item.metadata.name
+      }" class="img-fluid" style="max-height: 200px; border-radius: 10px;">
+    </div>
+    <h4>Details</h4>
+    <div style="background-color: #f0f0f0; padding: 10px; border-radius: 10px;">
+      <p><strong>Name:</strong> ${item.metadata.name || "N/A"}</p>
+      <p><strong>Imdb Rating:</strong> ${item.metadata.imdbRating || "N/A"}</p>
+      <p><strong>Description:</strong> ${item.metadata.description || "N/A"}</p>
+      <p><strong>Genres:</strong> ${item.metadata.genre || "N/A"}</p>
+      <p><strong>Cast:</strong> ${item.metadata.cast || "N/A"}</p>
+      <p><strong>Director:</strong> ${item.metadata.director || "N/A"}</p>
+      <p><strong>Writers:</strong> ${item.metadata.writer || "N/A"}</p>
+      <p><strong>Release Year:</strong> ${
+        item.metadata.releaseInfo || "N/A"
+      }</p>
+      <p><strong>Awards:</strong> ${item.metadata.awards || "N/A"}</p>
+       </div>
+       <h4>Trailer</h4>
+     `;
+    modalBody.appendChild(trailerContainer);
+
+    // Show the modal
+    const movieInfoModal = new bootstrap.Modal(
+      document.getElementById("movieInfoModal"),
+    );
+    movieInfoModal.show();
+  });
+  cardBody.appendChild(infoButton);
 
   const deleteButton = document.createElement("button");
   deleteButton.className = "btn btn-danger";
@@ -221,8 +293,16 @@ function createPlaylistItemCard(item) {
   deleteButton.onclick = async function () {
     try {
       await deletePlaylistItem(item.playlist_id, item.id);
+      showBootstrapAlert(
+        `${item.metadata.name || "N/A"} deleted successfully`,
+        "success",
+      );
       loadPlaylistItems(item.playlist_id); // Reload the playlist items
     } catch (error) {
+      showBootstrapAlert(
+        `Error deleting ${item.metadata.name || "N/A"}`,
+        "danger",
+      );
       console.error("Error deleting playlist item:", error);
     }
   };
@@ -252,17 +332,18 @@ function loadSearchResults(results, playlistId) {
   async function handleAddToPlaylist(meta, contentType) {
     try {
       const response = await addPlaylistItem(playlistId, meta.id, contentType);
-      alert("Added to playlist successfully");
+      showBootstrapAlert("Added to playlist successfully", "success");
       loadPlaylistItems(playlistId);
     } catch (error) {
       console.error("Error adding to playlist:", error);
       if (error.response && error.response.status === 400) {
-        alert("This item is already in the playlist");
+        showBootstrapAlert("This item is already in the playlist", "danger");
       } else {
-        alert("Error adding to playlist");
+        showBootstrapAlert("Error adding to playlist", "danger");
       }
     }
   }
+
   // Function to create a card inside a grid column
   function createCard(meta, contentType) {
     const col = document.createElement("div");
@@ -270,6 +351,7 @@ function loadSearchResults(results, playlistId) {
 
     const card = document.createElement("div");
     card.className = "card h-100";
+    card.style.boxShadow = "0px 4px 8px rgba(0, 0, 0, 0.3)";
 
     if (meta.poster) {
       const img = document.createElement("img");
@@ -285,19 +367,72 @@ function loadSearchResults(results, playlistId) {
     const title = document.createElement("h5");
     title.className = "card-title";
     title.textContent = meta.name;
+    title.style.maxWidth = "100%"; // Ensure the title does not exceed the card width
+    title.style.textOverflow = "ellipsis"; // Add ellipsis when text overflows
+    title.style.overflow = "hidden"; // Hide text that overflows the element's box
+    title.style.whiteSpace = "nowrap"; // Prevents the text from wrapping
+    title.style.fontWeight = "bold";
+    title.style.fontSize = "1.2rem";
     cardBody.appendChild(title);
+    cardBody.style.backgroundColor = "#f8f9fa";
+    cardBody.style.padding = "10px";
+    cardBody.style.borderRadius = "15px";
 
     // Create an "info" button
     const infoButton = document.createElement("button");
-    infoButton.className = "btn btn-info";
+    infoButton.className = "btn btn-secondary me-1";
     infoButton.textContent = "Info";
     infoButton.addEventListener("click", function () {
       // Set the movie info in the modal body
       const modalBody = document.querySelector("#movieInfoModal .modal-body");
+
+      // Create a container for the trailers
+      const trailerContainer = document.createElement("div");
+
+      if (meta.trailers && meta.trailers.length > 0) {
+        for (let i = 0; i < 1; i++) {
+          const trailer = meta.trailers[i];
+          const trailerEmbed = document.createElement("iframe");
+          trailerEmbed.width = "470";
+          trailerEmbed.height = "315";
+          trailerEmbed.src = `https://www.youtube.com/embed/${trailer.source}?si=pmz4rzDGU4-ScGmN`;
+          trailerEmbed.title = "YouTube video player";
+          trailerEmbed.frameBorder = "0";
+          trailerEmbed.allow =
+            "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share";
+          trailerEmbed.allowFullscreen = true;
+          trailerEmbed.style.borderRadius = "15px";
+          trailerContainer.appendChild(trailerEmbed);
+        }
+      } else {
+        const noTrailerText = document.createElement("p");
+        noTrailerText.textContent = "No trailers available.";
+        trailerContainer.appendChild(noTrailerText);
+      }
+
       modalBody.innerHTML = `
-        <h5>${meta.name}</h5>
-        <p>Release Year: ${meta.releaseInfo || "N/A"}</p>
-       `;
+        <div style="background-color: #f0f0f0; padding: 10px; border-radius: 10px;">
+          <img src="${meta.logo || meta.poster}" alt="${
+            meta.name
+          }" class="img-fluid" style="max-height: 200px; border-radius: 10px;">
+        </div>
+        <p></p>
+          <h4>Details</h4>
+        <div style="background-color: #f0f0f0; padding: 10px; border-radius: 10px;">
+          <p><strong>Name:</strong> ${meta.name || "N/A"}</p>
+          <p><strong>Imdb Rating:</strong> ${meta.imdbRating || "N/A"}</p>
+          <p><strong>Description:</strong> ${meta.description || "N/A"}</p>
+          <p><strong>Genres:</strong> ${meta.genre || "N/A"}</p>
+          <p><strong>Cast:</strong> ${meta.cast || "N/A"}</p>
+          <p><strong>Director:</strong> ${meta.director || "N/A"}</p>
+          <p><strong>Writers:</strong> ${meta.writer || "N/A"}</p>
+          <p><strong>Release Year:</strong> ${meta.releaseInfo || "N/A"}</p>
+          <p><strong>Awards:</strong> ${meta.awards || "N/A"}</p>
+        </div>
+        <h4>Trailer</h4>
+      `;
+
+      modalBody.appendChild(trailerContainer);
 
       // Show the modal
       const movieInfoModal = new bootstrap.Modal(
@@ -309,7 +444,7 @@ function loadSearchResults(results, playlistId) {
 
     const addToPlaylistButton = document.createElement("button");
     addToPlaylistButton.className = "btn btn-primary";
-    addToPlaylistButton.textContent = "Add to Playlist";
+    addToPlaylistButton.textContent = "Add";
     addToPlaylistButton.addEventListener("click", function () {
       handleAddToPlaylist(meta, contentType);
     });
@@ -385,41 +520,8 @@ document.addEventListener("DOMContentLoaded", function () {
     clearButton.addEventListener("click", clearSearchResults);
   }
 
-  var editPlaylistForm = document.getElementById("editPlaylistForm");
-  if (editPlaylistForm) {
-    editPlaylistForm.addEventListener(
-      "submit",
-      handleEditPlaylistFormSubmission,
-    );
-  }
-
   loadPlaylists();
 });
-
-// Function to handle the submission of the edit playlist form
-async function handleEditPlaylistFormSubmission(event) {
-  event.preventDefault();
-
-  // Get the updated values from the form
-  const editedName = document.getElementById("editPlaylistName").value;
-  const editedOrderInput = document.getElementById("editPlaylistOrder");
-  const editedOrder = parseInt(editedOrderInput.value, 10);
-  const editedColor = document.getElementById("editPlaylistColor").value;
-
-  // Send a request to the server to update the playlist details
-  try {
-    const response = await editPlaylist(editedName, editedOrder, editedColor);
-    alert("Playlist updated successfully");
-    loadPlaylists(); // Reload playlists to reflect changes
-    const editModal = new bootstrap.Modal(
-      document.getElementById("editPlaylistModal"),
-    );
-    editModal.hide();
-  } catch (error) {
-    console.error("Error updating playlist:", error);
-    alert("Error updating playlist");
-  }
-}
 
 // Validate playlist ordering values
 function handleInput(event) {
@@ -433,4 +535,22 @@ function handleInput(event) {
     // Set the input value without the decimal part
     inputElement.value = intValue;
   }
+}
+
+function showBootstrapAlert(message, type = "info") {
+  const alertContainer = document.getElementById("alert-container");
+  const alert = document.createElement("div");
+  alert.className = `alert alert-${type} alert-dismissible fade show`;
+  alert.role = "alert";
+  alert.innerHTML = `
+    ${message}
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+  `;
+
+  alertContainer.appendChild(alert);
+
+  // Automatically dismiss the alert after 5 seconds
+  setTimeout(() => {
+    alert.remove();
+  }, 500);
 }

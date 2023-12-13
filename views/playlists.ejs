@@ -1,73 +1,75 @@
 <%- include('partials/header.ejs') %>
 
-  
-  <main class="container">
-    <h1 class="my-4"> Playlists </h1>
+<main class="container">
+  <h1 class="my-4 text-center">Playlists</h1>
+  <div id="alert-container">
+    <!-- Alerts will appear here -->
+  </div>
 
-    <div class="card p-4">
-      <form id="playlistForm" class="form-inline">
- 
-          <label for="playlistName" class="mr-2">Enter Playlist Name:</label>
-          <input type="text" id="playlistName" name="playlistName" class="form-control mr-2" required>
-          <button type="submit" class="btn btn-primary">Create Playlist</button>
-      </form>
-    </div>
+  <div class="card p-4 shadow-sm">
+    <form id="playlistForm" class="row g-3 align-items-center">
+      <div class="col-auto">
+        <label for="playlistName" class="visually-hidden">Playlist Name:</label>
+        <input type="text" id="playlistName" name="playlistName" class="form-control" placeholder="Enter Playlist Name" required>
+      </div>
+      <div class="col-auto">
+        <button type="submit" class="btn btn-primary">Create Playlist</button>
+      </div>
+    </form>
+  </div>
 
-    <ul id="playlists" class="list-group my-4">
-      <!-- Playlist items -->
-    </ul>
-  </main>
+  <ul id="playlists" class="list-group list-group-flush my-4">
+    <!-- Playlist items -->
+  </ul>
+</main>
 
-  <!-- Edit Playlist Modal -->
-  <div class="modal fade" id="editPlaylistModal" tabindex="-1" aria-labelledby="editPlaylistModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          
-          <h5 class="modal-title" id="editPlaylistModalLabel">Edit Playlist</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <div class="modal-body">
-          <form id="editPlaylistForm">
-            <div class="mb-3">
+<!-- Edit Playlist Modal -->
+<div class="modal fade" id="editPlaylistModal" tabindex="-1" aria-labelledby="editPlaylistModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="editPlaylistModalLabel">Edit Playlist</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="editPlaylistForm">
+          <div class="form-floating mb-3">
+            <input type="text" class="form-control" id="editPlaylistName" name="playlist_name" placeholder="Playlist Name">
+            <label for="editPlaylistName">Playlist Name</label>
+          </div>
 
-              
-              
-              <label for="editPlaylistName" class="form-label">Playlist Name</label>
-              <input type="text" class="form-control" id="editPlaylistName" name="playlist_name">
-            </div>
-            
-            <div class="mb-3">
-              <label for="editPlaylistOrder" class="form-label">Playlist Order</label>
-              <input type="number" class="form-control" id="editPlaylistOrder" name="playlist_order" min="1" oninput="handleInput(event);">
-            </div>
+          <div class="form-floating mb-3">
+            <input type="number" class="form-control" id="editPlaylistOrder" name="playlist_order" min="1" placeholder="Playlist Order" oninput="handleInput(event);">
+            <label for="editPlaylistOrder">Playlist Order</label>
+          </div>
 
-            <div class="mb-3">
-              <label for="editPlaylistColor" class="form-label">Playlist Color</label>
-              <select class="form-select" id="editPlaylistColor" name="color">
-                <option value="white">White</option>
-                <option value="#ffcdd2">Red</option>
-                <option value="#c8e6c9">Green</option>
-                <option value="#fff9c4">Yellow</option>
-                <option value="#e1bee7">Purple</option>
-                <option value="#ffe0b2">Orange</option>
-                <option value="#f8bbd0">Pink</option>
-                <option value="#f0f0f0">Gray</option>
-                <option value="#b2ebf2">Teal</option>
-                <option value="#b2dfdb">Cyan</option>
-              </select>
-            </div>
+          <div class="mb-3">
+            <label for="editPlaylistColor" class="form-label">Playlist Color</label>
+            <select class="form-select" id="editPlaylistColor" name="color">
+              <option value="white">White</option>
+              <option value="#ffcdd2">Red</option>
+              <option value="#c8e6c9">Green</option>
+              <option value="#fff9c4">Yellow</option>
+              <option value="#e1bee7">Purple</option>
+              <option value="#ffe0b2">Orange</option>
+              <option value="#f8bbd0">Pink</option>
+              <option value="#f0f0f0">Gray</option>
+              <option value="#b2ebf2">Teal</option>
+              <option value="#b2dfdb">Cyan</option>
+            </select>
+          </div>
 
-            <div class="mb-3">
-              <button type="submit" class="btn btn-primary">Save changes</button>
-            </div>
-          </form>
-        </div>
+          <div class="text-end">
+            <button type="submit" class="btn btn-success">Save Changes</button>
+          </div>
+        </form>
       </div>
     </div>
   </div>
+</div>
 
 <%- include('partials/footer.ejs') %>
+
 
 
   
