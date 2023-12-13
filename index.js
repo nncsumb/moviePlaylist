@@ -306,22 +306,6 @@ async function searchMetadata(ids, type) {
   return cinemetaData.metasDetailed || [];
 }
 
-// app.get("/edit-playlist/:id", async (req, res) => {
-//   const playlistId = req.params.id;
-//   try {
-//     const sql = "SELECT * FROM Playlist WHERE id = ?";
-//     const playlist = await executeSQL(sql, [playlistId]);
-//     if (playlist.length > 0) {
-//       res.render("edit-playlist", { playlist: playlist[0] });
-//     } else {
-//       res.status(404).send("Playlist not found");
-//     }
-//   } catch (err) {
-//     console.error(err);
-//     res.status(500).send("Error retrieving playlist details");
-//   }
-// });
-
 app.post("/edit-playlist/:id", async (req, res) => {
   const playlistId = req.params.id;
   const { playlist_name, playlist_order, color } = req.body;
