@@ -25,19 +25,13 @@ function applySorting(playlistId) {
   const filterSeries = document.getElementById("filterSeries").checked;
   const selectedGenre = document.getElementById("genreSelect").value;
 
-  console.log(
-    `Applying filters: Type - ${filterMovies ? "Movies" : ""}${
-      filterSeries ? " Series" : ""
-    }, Genre - ${selectedGenre}`,
-  );
-
   let type = "";
-  if (filterMovies && !filterSeries) {
+  if (filterMovies && filterSeries) {
+    type = "";
+  } else if (filterMovies) {
     type = "movie";
-  } else if (!filterMovies && filterSeries) {
+  } else if (filterSeries) {
     type = "series";
-  } else {
-    type = "both";
   }
 
   loadPlaylistItems(playlistId, type, selectedGenre);
@@ -75,7 +69,6 @@ async function handleSearchFormSubmission(event) {
     alert("Error searching");
   }
 }
-
 
 // Function to load and display playlists
 async function loadPlaylists() {
@@ -129,6 +122,8 @@ async function loadPlaylists() {
           playlist.playlist_name;
         document.getElementById("editPlaylistOrder").value =
           playlist.playlist_order;
+        document.getElementById("editPlaylistColor").value = playlist.color;
+        editModal.show();
         document.getElementById("editPlaylistForm").onsubmit = async function (
           event,
         ) {
@@ -168,46 +163,21 @@ async function loadPlaylistItems(
   genreFilter = "",
 ) {
   try {
-    let items = await getPlaylistItems(playlistId, typeFilter, genreFilter);
+    let items = await getPlaylistItems(playlistId, typeFilter);
     const itemsContainer = document.getElementById("playlistItems");
-    itemsContainer.innerHTML = "";  
+    itemsContainer.innerHTML = "";
 
-    // Filter items by type if necessary
-    if (typeFilter !== "both") {
-      items = items.filter(
-        (item) => typeFilter === "" || item.type === typeFilter,
-      );
+    if (typeFilter !== "") {
+      items = items.filter((item) => item.type === typeFilter);
     }
 
-    // Group items by genre
-    const genres = items.reduce((acc, item) => {
-      const genre =
-        item.metadata && item.metadata.genres
-          ? item.metadata.genres[0]
-          : "Other";
-      if (!acc[genre]) {
-        acc[genre] = [];
-      }
-      acc[genre].push(item);
-      return acc;
-    }, {});
+    if (genreFilter !== "") {
+      items = items.filter((item) => item.genre === genreFilter);
+    }
 
-     const sortedGenres = Object.keys(genres).sort();
-
-     sortedGenres.forEach((genre) => {
-       const header = document.createElement("h4");
-      header.textContent = genre;
-      itemsContainer.appendChild(header);
-
-       const row = document.createElement("div");
-      row.className = "row";
-
-       genres[genre].forEach((item) => {
-        const cardCol = createPlaylistItemCard(item);
-        row.appendChild(cardCol);
-      });
-
-      itemsContainer.appendChild(row);
+    items.forEach((item) => {
+      const cardCol = createPlaylistItemCard(item);
+      itemsContainer.appendChild(cardCol);
     });
   } catch (error) {
     console.error("Error retrieving playlist items:", error);
@@ -256,20 +226,19 @@ function createPlaylistItemCard(item) {
   return col;
 }
 
- function loadSearchResults(results, playlistId) {
-  const searchResultsContainer = document.getElementById("searchResults");  
+function loadSearchResults(results, playlistId) {
+  const searchResultsContainer = document.getElementById("searchResults");
   const searchMoviesContainer = document.getElementById("searchMovies");
   const searchSeriesContainer = document.getElementById("searchSeries");
 
-   const hasResults = results.movies.length > 0 || results.series.length > 0;
+  const hasResults = results.movies.length > 0 || results.series.length > 0;
   searchResultsContainer.style.display = hasResults ? "block" : "none";
 
-   searchMoviesContainer.innerHTML = "<div class='row'></div>";
+  searchMoviesContainer.innerHTML = "<div class='row'></div>";
   searchSeriesContainer.innerHTML = "<div class='row'></div>";
 
   const movieRow = searchMoviesContainer.querySelector(".row");
   const seriesRow = searchSeriesContainer.querySelector(".row");
-
 
   // Function to handle adding items to the playlist
   async function handleAddToPlaylist(meta, contentType) {
@@ -325,7 +294,9 @@ function createPlaylistItemCard(item) {
        `;
 
       // Show the modal
-      const movieInfoModal = new bootstrap.Modal(document.getElementById("movieInfoModal"));
+      const movieInfoModal = new bootstrap.Modal(
+        document.getElementById("movieInfoModal"),
+      );
       movieInfoModal.show();
     });
     cardBody.appendChild(infoButton);
@@ -343,7 +314,6 @@ function createPlaylistItemCard(item) {
 
     return col;
   }
-
 
   // Handling movie results
   if (results.movies && results.movies.length > 0) {
@@ -369,30 +339,30 @@ function createPlaylistItemCard(item) {
 }
 
 function clearSearchResults() {
-  const searchResultsContainer = document.getElementById("searchResults");  
+  const searchResultsContainer = document.getElementById("searchResults");
 
-   document.getElementById("searchMovies").innerHTML = "";
+  document.getElementById("searchMovies").innerHTML = "";
   document.getElementById("searchSeries").innerHTML = "";
 
-   searchResultsContainer.style.display = "none";
+  searchResultsContainer.style.display = "none";
 
-   document.getElementById("search").value = "";
+  document.getElementById("search").value = "";
   document.getElementById("clearButton").style.display = "none";
 }
 
 // Event listeners
 document.addEventListener("DOMContentLoaded", function () {
-   var userForm = document.getElementById("userForm");
+  var userForm = document.getElementById("userForm");
   if (userForm) {
     userForm.addEventListener("submit", handleUserFormSubmission);
   }
 
-   var playlistForm = document.getElementById("playlistForm");
+  var playlistForm = document.getElementById("playlistForm");
   if (playlistForm) {
     playlistForm.addEventListener("submit", handlePlaylistFormSubmission);
   }
 
-   var searchForm = document.getElementById("searchForm");
+  var searchForm = document.getElementById("searchForm");
   if (searchForm) {
     searchForm.addEventListener("submit", handleSearchFormSubmission);
   }
@@ -400,7 +370,7 @@ document.addEventListener("DOMContentLoaded", function () {
   var backButton = document.getElementById("backButton");
   if (backButton) {
     backButton.addEventListener("click", function () {
-      window.location.href = "/playlists";  
+      window.location.href = "/playlists";
     });
   }
 
@@ -412,10 +382,6 @@ document.addEventListener("DOMContentLoaded", function () {
   loadPlaylists();
 });
 
-
-//fix me, everything below here..
-//need to adjust backend, values for order and color aren't posting
-
 // Add event listener for the form submission in the modal
 const editPlaylistForm = document.getElementById("editPlaylistForm");
 editPlaylistForm.addEventListener("submit", async function (event) {
@@ -423,17 +389,16 @@ editPlaylistForm.addEventListener("submit", async function (event) {
 
   // Get the updated values from the form
   const editedName = document.getElementById("editPlaylistName").value;
-  const editedOrder = document.getElementById("editPlaylistOrder").value;
+  const editedOrderInput = document.getElementById("editPlaylistOrder");
+  const editedOrder = parseInt(editedOrderInput.value, 10);
   const editedColor = document.getElementById("editPlaylistColor").value;
-
   // Send a request to the server to update the playlist details
   try {
-    const playlistId = document.getElementById("playlistId").value;
-    const response = await editPlaylist(playlistId, editedName, editedOrder, editedColor);
+    const response = await editPlaylist(editedName, editedOrder, editedColor);
     alert("Playlist updated successfully");
     loadPlaylists(); // Reload playlists to reflect changes
-     const editModal = new bootstrap.Modal(
-      document.getElementById("editPlaylistModal")
+    const editModal = new bootstrap.Modal(
+      document.getElementById("editPlaylistModal"),
     );
     editModal.hide();
   } catch (error) {
@@ -447,7 +412,7 @@ function handleInput(event) {
   const inputElement = event.target;
 
   // Ensure the input is valid and not empty
-  if (inputElement.validity.valid && inputElement.value !== '') {
+  if (inputElement.validity.valid && inputElement.value !== "") {
     // Parse the input value as an integer to drop the decimal part
     const intValue = parseInt(inputElement.value, 10);
 

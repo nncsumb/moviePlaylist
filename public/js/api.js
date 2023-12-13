@@ -12,22 +12,34 @@ async function createUser(userName) {
   }
 }
 
- // Function to edit a playlist
-async function editPlaylist(playlistId, updatedPlaylistName, updatedPlaylistOrder, updatedColor) {
+// Function to edit a playlist
+async function editPlaylist(
+  playlistId,
+  updatedPlaylistName,
+  updatedPlaylistOrder,
+  updatedColor,
+) {
   try {
+    const orderAsNumber = Number(updatedPlaylistOrder); // Convert to number
+    console.log("Sending data to server:", {
+      playlist_name: updatedPlaylistName,
+      playlist_order: orderAsNumber,
+      color: updatedColor,
+    });
+
     const response = await axios.post(`/edit-playlist/${playlistId}`, {
       playlist_name: updatedPlaylistName,
-      playlist_order: updatedPlaylistOrder,  
-      color: updatedColor,    
+      playlist_order: orderAsNumber,
+      color: updatedColor,
     });
+
     console.log("Playlist updated:", response.data);
     return response.data;
   } catch (error) {
-    console.error("Error updating playlist:", error);
+    console.error("Error updating playlist!!!!!:", error);
     throw error;
   }
 }
-
 
 // Function to create a new playlist
 async function createPlaylist(playlistName, userId) {
@@ -52,13 +64,15 @@ async function deletePlaylist(playlistId) {
   } catch (error) {
     console.error("Error deleting playlist:", error);
     throw error;
-  }// update order?
+  } // update order?
 }
 
 // Function to get playlists for a user
 async function getPlaylists(userId) {
   try {
-    const response = await axios.get(`/api/playlist/${userId}?order=playlist_order`);
+    const response = await axios.get(
+      `/api/playlist/${userId}?order=playlist_order`,
+    );
     console.log("Playlists:", response.data);
     return response.data;
   } catch (error) {
@@ -108,7 +122,7 @@ async function getPlaylistItems(playlistId, type = "", genre = "") {
     });
     console.log("Playlist items:", response.data);
     return response.data;
-   } catch (error) {
+  } catch (error) {
     console.error("Error retrieving playlist items:", error);
     throw error;
   }
