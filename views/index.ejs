@@ -1,29 +1,28 @@
-  <%- include('partials/header.ejs') %>
-  <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet">
-  <script>
-       if (localStorage.getItem("userId")) {
-           window.location.href = "/playlists";
-      }
-  </script>
+<%- include('partials/header.ejs') %>
 
-  <div class="container mt-5">
-      <h1 class="text-center mb-4">Movie & TV Show Playlists App</h1>
+<script>
+    if (localStorage.getItem("userId")) {
+        window.location.href = "/playlists";
+    }
+</script>
+
+<div class="container py-5">
+    <h1 class="text-center mb-4">Movie & TV Show Playlists App</h1>
     <div id="alert-container">
-      <!-- Alerts will appear here -->
+        <!-- Alerts will appear here -->
     </div>
 
+    <form id="userForm" class="needs-validation" novalidate>
+        <div class="mb-3">
+            <label for="userName" class="form-label">Enter your name:</label>
+            <input type="text" class="form-control" id="userName" name="userName" required>
+            <div class="invalid-feedback">
+                Please enter your name.
+            </div>
+        </div>
+        <button type="submit" class="btn btn-primary">Create User</button>
+    </form>
+</div>
 
-       <form id="userForm" class="needs-validation" novalidate>
-          <div class="form-group">
-              <label for="userName">Enter your name:</label>
-              <input type="text" class="form-control" id="userName" name="userName" required>
-              <div class="invalid-feedback">
-                  Please enter your name.
-              </div>
-          </div>
-          <button type="submit" class="btn btn-primary">Create User</button>
-      </form>
-  </div>
+<%- include('partials/footer.ejs') %>
 
-  <%- include('partials/footer.ejs') %>
-  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
