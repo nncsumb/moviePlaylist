@@ -64,7 +64,7 @@ async function deletePlaylist(playlistId) {
   } catch (error) {
     console.error("Error deleting playlist:", error);
     throw error;
-  } // update order?
+  }
 }
 
 // Function to get playlists for a user

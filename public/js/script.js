@@ -54,7 +54,7 @@ async function handlePlaylistFormSubmission(event) {
   try {
     const response = await createPlaylist(playlistName, userId);
     if (response) {
-      showBootstrapAlert("Playlist created successfully", "success");
+      showBootstrapAlert(`${playlistName} created successfully`, "success");
       loadPlaylists(); // Reload the playlist display
     }
   } catch (error) {
@@ -123,7 +123,10 @@ async function loadPlaylists() {
         deleteButton.onclick = async function () {
           try {
             await deletePlaylist(playlist.id);
-            showBootstrapAlert("Playlist deleted successfully", "success");
+            showBootstrapAlert(
+              `${playlist.playlist_name} deleted successfully`,
+              "success",
+            );
             loadPlaylists(); // Reload playlists to reflect changes
           } catch (error) {
             console.error("Error deleting playlist:", error);
@@ -159,7 +162,10 @@ async function loadPlaylists() {
                   document.getElementById("editPlaylistOrder").value,
                   document.getElementById("editPlaylistColor").value,
                 );
-                showBootstrapAlert("Playlist updated successfully", "success");
+                showBootstrapAlert(
+                  `${playlist.playlist_name} updated successfully`,
+                  "success",
+                );
                 loadPlaylists(); // Reload playlists to reflect changes
                 editModal.hide();
               } catch (error) {
@@ -354,14 +360,23 @@ function loadSearchResults(results, playlistId) {
   async function handleAddToPlaylist(meta, contentType) {
     try {
       const response = await addPlaylistItem(playlistId, meta.id, contentType);
-      showBootstrapAlert("Added to playlist successfully", "success");
+      showBootstrapAlert(
+        `${meta.name || "N/A"} added to playlist successfully`,
+        "success",
+      );
       loadPlaylistItems(playlistId);
     } catch (error) {
       console.error("Error adding to playlist:", error);
       if (error.response && error.response.status === 400) {
-        showBootstrapAlert("This item is already in the playlist", "danger");
+        showBootstrapAlert(
+          `${meta.name || "N/A"} is already in the playlist`,
+          "danger",
+        );
       } else {
-        showBootstrapAlert("Error adding to playlist", "danger");
+        showBootstrapAlert(
+          `Error adding ${meta.name || "N/A"} to playlist`,
+          "danger",
+        );
       }
     }
   }
