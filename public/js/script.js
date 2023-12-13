@@ -77,81 +77,89 @@ async function loadPlaylists() {
 
   try {
     const playlists = await getPlaylists(userId);
+
+    // Check if playlistsContainer exists on the page
     const playlistsContainer = document.getElementById("playlists");
-    playlistsContainer.innerHTML = "";
-    playlistsContainer.className = "list-group";
+    if (!playlistsContainer) return;
 
-    playlists.forEach((playlist) => {
-      const li = document.createElement("li");
-      li.className =
-        "list-group-item d-flex justify-content-between align-items-center";
-      li.style.backgroundColor = playlist.color;
-      const a = document.createElement("a");
-      a.href = `/playlist/${playlist.id}`;
-      a.textContent = playlist.playlist_name;
-      a.className = "playlist-link";
-      li.appendChild(a);
+    // Only manipulate playlistsContainer if there are playlists
+    if (playlists && playlists.length > 0) {
+      const playlistsContainer = document.getElementById("playlists");
+      playlistsContainer.innerHTML = "";
+      playlistsContainer.className = "list-group";
 
-      const buttonContainer = document.createElement("div");
+      playlists.forEach((playlist) => {
+        const li = document.createElement("li");
+        li.className =
+          "list-group-item d-flex justify-content-between align-items-center";
+        li.style.backgroundColor = playlist.color;
 
-      const deleteButton = document.createElement("button");
-      deleteButton.textContent = "Delete";
-      deleteButton.className = "btn btn-danger btn-sm mx-1";
-      deleteButton.onclick = async function () {
-        try {
-          await deletePlaylist(playlist.id);
-          alert("Playlist deleted successfully");
-          loadPlaylists(); // Reload playlists to reflect changes
-        } catch (error) {
-          console.error("Error deleting playlist:", error);
-          alert("Error deleting playlist");
-        }
-      };
-      buttonContainer.appendChild(deleteButton);
+        const a = document.createElement("a");
+        a.href = `/playlist/${playlist.id}`;
+        a.textContent = playlist.playlist_name;
+        a.className = "playlist-link";
+        li.appendChild(a);
 
-      // Edit button
-      const editButton = document.createElement("button");
-      editButton.textContent = "Edit";
-      editButton.className = "btn btn-primary btn-sm mx-1";
-      editButton.onclick = function () {
-        // Open edit modal
-        const editModal = new bootstrap.Modal(
-          document.getElementById("editPlaylistModal"),
-        );
-        document.getElementById("editPlaylistName").value =
-          playlist.playlist_name;
-        document.getElementById("editPlaylistOrder").value =
-          playlist.playlist_order;
-        document.getElementById("editPlaylistColor").value = playlist.color;
-        editModal.show();
-        document.getElementById("editPlaylistForm").onsubmit = async function (
-          event,
-        ) {
-          event.preventDefault();
+        const buttonContainer = document.createElement("div");
+
+        // Delete button
+        const deleteButton = document.createElement("button");
+        deleteButton.textContent = "Delete";
+        deleteButton.className = "btn btn-danger btn-sm mx-1";
+        deleteButton.onclick = async function () {
           try {
-            // Call API to update the playlist
-            await editPlaylist(
-              playlist.id,
-              document.getElementById("editPlaylistName").value,
-              document.getElementById("editPlaylistOrder").value,
-              document.getElementById("editPlaylistColor").value,
-            );
-            alert("Playlist updated successfully");
+            await deletePlaylist(playlist.id);
+            alert("Playlist deleted successfully");
             loadPlaylists(); // Reload playlists to reflect changes
-            editModal.hide();
           } catch (error) {
-            console.error("Error updating playlist:", error);
-            alert("Error updating playlist");
+            console.error("Error deleting playlist:", error);
+            alert("Error deleting playlist");
           }
         };
-        editModal.show();
-      };
+        buttonContainer.appendChild(deleteButton);
 
-      buttonContainer.appendChild(editButton);
+        // Edit button
+        const editButton = document.createElement("button");
+        editButton.textContent = "Edit";
+        editButton.className = "btn btn-primary btn-sm mx-1";
+        editButton.onclick = function () {
+          // Open edit modal
+          const editModal = new bootstrap.Modal(
+            document.getElementById("editPlaylistModal"),
+          );
+          document.getElementById("editPlaylistName").value =
+            playlist.playlist_name;
+          document.getElementById("editPlaylistOrder").value =
+            playlist.playlist_order;
+          document.getElementById("editPlaylistColor").value = playlist.color;
+          editModal.show();
 
-      li.appendChild(buttonContainer);
-      playlistsContainer.appendChild(li);
-    });
+          document.getElementById("editPlaylistForm").onsubmit =
+            async function (event) {
+              event.preventDefault();
+              try {
+                // Call API to update the playlist
+                await editPlaylist(
+                  playlist.id,
+                  document.getElementById("editPlaylistName").value,
+                  document.getElementById("editPlaylistOrder").value,
+                  document.getElementById("editPlaylistColor").value,
+                );
+                alert("Playlist updated successfully");
+                loadPlaylists(); // Reload playlists to reflect changes
+                editModal.hide();
+              } catch (error) {
+                console.error("Error updating playlist:", error);
+                alert("Error updating playlist");
+              }
+            };
+        };
+        buttonContainer.appendChild(editButton);
+
+        li.appendChild(buttonContainer);
+        playlistsContainer.appendChild(li);
+      });
+    }
   } catch (error) {
     console.error("Error retrieving playlists:", error);
   }
@@ -288,9 +296,7 @@ function loadSearchResults(results, playlistId) {
       const modalBody = document.querySelector("#movieInfoModal .modal-body");
       modalBody.innerHTML = `
         <h5>${meta.name}</h5>
-        <p>Release Year: ${meta.releaseYear || "N/A"}</p>
-        <p>Director: ${meta.director || "N/A"}</p>
-        <p>Genre: ${meta.genre || "N/A"}</p>
+        <p>Release Year: ${meta.releaseInfo || "N/A"}</p>
        `;
 
       // Show the modal
@@ -379,12 +385,19 @@ document.addEventListener("DOMContentLoaded", function () {
     clearButton.addEventListener("click", clearSearchResults);
   }
 
+  var editPlaylistForm = document.getElementById("editPlaylistForm");
+  if (editPlaylistForm) {
+    editPlaylistForm.addEventListener(
+      "submit",
+      handleEditPlaylistFormSubmission,
+    );
+  }
+
   loadPlaylists();
 });
 
-// Add event listener for the form submission in the modal
-const editPlaylistForm = document.getElementById("editPlaylistForm");
-editPlaylistForm.addEventListener("submit", async function (event) {
+// Function to handle the submission of the edit playlist form
+async function handleEditPlaylistFormSubmission(event) {
   event.preventDefault();
 
   // Get the updated values from the form
@@ -392,6 +405,7 @@ editPlaylistForm.addEventListener("submit", async function (event) {
   const editedOrderInput = document.getElementById("editPlaylistOrder");
   const editedOrder = parseInt(editedOrderInput.value, 10);
   const editedColor = document.getElementById("editPlaylistColor").value;
+
   // Send a request to the server to update the playlist details
   try {
     const response = await editPlaylist(editedName, editedOrder, editedColor);
@@ -405,7 +419,7 @@ editPlaylistForm.addEventListener("submit", async function (event) {
     console.error("Error updating playlist:", error);
     alert("Error updating playlist");
   }
-});
+}
 
 // Validate playlist ordering values
 function handleInput(event) {
